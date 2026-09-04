@@ -138,6 +138,49 @@ page = st.sidebar.radio(
 # ============================================================
 # ACCUEIL
 # ============================================================
+CLASSES_PAR_COULEUR = {tuple(c): i for i, c in CATEGORY_COLORS.items()}
+
+
+def rgb_vers_classes(mask_rgb):
+    """Masque RGB renvoye par l'API -> carte de classes (H, W) uint8."""
+    arr = np.asarray(mask_rgb.convert("RGB"))
+    classes = np.zeros(arr.shape[:2], dtype=np.uint8)
+    for cat_id, color in CATEGORY_COLORS.items():
+        classes[np.all(arr == np.array(color), axis=-1)] = cat_id
+    return classes
+
+
+def miou_image(pred, gt):
+    """mIoU sur une seule image, moyenne sur les categories presentes."""
+    ious = []
+    for c in range(N_CLASSES):
+        union = np.logical_or(pred == c, gt == c).sum()
+        if union:
+            ious.append(np.logical_and(pred == c, gt == c).sum() / union)
+    return float(np.mean(ious)) if ious else 0.0
+
+
+def carte_ecarts(a, b, couleur=(214, 39, 40)):
+    """Pixels ou a et b different, en rouge sur fond clair."""
+    ecart = a != b
+    out = np.full((*ecart.shape, 3), 240, dtype=np.uint8)
+    out[ecart] = couleur
+    return out, float(ecart.mean() * 100)
+
+
+def masque_segformer(nom, contenu, mime):
+    """Appelle l'API et renvoie le masque RGB, ou leve l'exception requests."""
+    return Image.open(
+        io.BytesIO(
+            requests.post(
+                f"{API_URL}/predict",
+                files={"file": (nom, io.BytesIO(contenu), mime)},
+                timeout=90,
+            ).content
+        )
+    )
+
+
 if page == "Accueil":
     st.title("Segmentation semantique d'images pour vehicules autonomes")
     st.markdown("**Future Vision Transport** - Equipe R&D")
@@ -295,94 +338,211 @@ elif page == "Exploration des donnees":
 # ============================================================
 elif page == "Prediction":
     st.title("Prediction de segmentation")
-    st.markdown(
-        "Telechargez une image de scene urbaine pour obtenir "
-        "sa segmentation semantique via le modele SegFormer."
+
+    source = st.radio(
+        "Source de l'image",
+        ("Exemple du dataset", "Importer une image"),
+        horizontal=True,
+        help="Les exemples du dataset ont une verite terrain : ils permettent de "
+             "comparer SegFormer a la baseline U-Net.",
     )
 
-    uploaded_file = st.file_uploader(
-        "Choisir une image",
-        type=["png", "jpg", "jpeg"],
-        help="Image de scene urbaine (format PNG ou JPEG)",
-    )
+    # ------------------------------------------------------------------
+    # A. Exemple du dataset : comparaison complete
+    # ------------------------------------------------------------------
+    if source == "Exemple du dataset":
+        st.markdown(
+            "Chaque exemple est fourni avec son **annotation de reference**. "
+            "Les predictions du **U-Net** (baseline du Projet 8, 31 M parametres) "
+            "sont precalculees : le modele pese 119 Mo et ne peut pas etre servi "
+            "en ligne a cote de SegFormer. Celles de **SegFormer** sont calculees "
+            "en direct par l'API."
+        )
 
-    if uploaded_file is not None:
-        img = Image.open(uploaded_file).convert("RGB")
-        col1, col2 = st.columns(2)
+        numero = st.selectbox(
+            "Choisir une scene urbaine",
+            options=list(range(1, N_SAMPLES + 1)),
+            format_func=lambda n: f"Scene {n}",
+        )
 
-        with col1:
-            st.subheader("Image originale")
-            st.image(img, use_container_width=True)
+        img_path = SAMPLES_DIR / f"sample_{numero}_img.png"
+        gt_path = SAMPLES_DIR / f"sample_{numero}_gt.png"
+        unet_path = SAMPLES_DIR / f"sample_{numero}_unet.png"
 
-        # Appel a l'API
-        with st.spinner("Segmentation en cours..."):
+        img = Image.open(img_path).convert("RGB")
+        gt = np.asarray(Image.open(gt_path))
+        unet = np.asarray(Image.open(unet_path))
+
+        segformer = None
+        with st.spinner("Segmentation SegFormer en cours..."):
             try:
-                uploaded_file.seek(0)
-                files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
-                # Timeout large : le tier gratuit (Render) peut mettre ~1 min a sortir de veille
-                response = requests.post(f"{API_URL}/predict", files=files, timeout=90)
+                masque = masque_segformer(
+                    img_path.name, img_path.read_bytes(), "image/png"
+                )
+                segformer = rgb_vers_classes(masque)
+            except requests.exceptions.Timeout:
+                st.warning(
+                    f"L'API ({API_URL}) n'a pas repondu a temps. Hebergee sur une "
+                    "offre gratuite, elle sort peut-etre de veille : reessayez dans "
+                    "une minute. La verite terrain et le U-Net restent affiches."
+                )
+            except requests.exceptions.RequestException as exc:
+                st.warning(f"API injoignable ({exc}). Comparaison partielle.")
 
-                if response.status_code == 200:
-                    mask_img = Image.open(io.BytesIO(response.content))
+        colonnes = st.columns(4)
+        colonnes[0].markdown("**Image**")
+        colonnes[0].image(img, use_container_width=True)
+        colonnes[1].markdown("**Verite terrain**")
+        colonnes[1].image(mask_to_rgb(gt), use_container_width=True)
+        colonnes[2].markdown("**U-Net** (baseline)")
+        colonnes[2].image(mask_to_rgb(unet), use_container_width=True)
+        colonnes[3].markdown("**SegFormer MiT-B0**")
+        if segformer is not None:
+            colonnes[3].image(mask_to_rgb(segformer), use_container_width=True)
+        else:
+            colonnes[3].info("Indisponible")
+
+        st.subheader("Ou les deux modeles se trompent")
+
+        err_unet, taux_unet = carte_ecarts(unet, gt)
+        cols_err = st.columns(3)
+        cols_err[0].markdown("**Erreurs du U-Net**")
+        cols_err[0].image(err_unet, use_container_width=True)
+        cols_err[0].caption(f"{taux_unet:.1f} % des pixels mal classes")
+
+        if segformer is not None:
+            err_seg, taux_seg = carte_ecarts(segformer, gt)
+            cols_err[1].markdown("**Erreurs de SegFormer**")
+            cols_err[1].image(err_seg, use_container_width=True)
+            cols_err[1].caption(f"{taux_seg:.1f} % des pixels mal classes")
+
+            desaccord, taux_desaccord = carte_ecarts(
+                unet, segformer, couleur=(148, 103, 189)
+            )
+            cols_err[2].markdown("**Desaccord entre les deux modeles**")
+            cols_err[2].image(desaccord, use_container_width=True)
+            cols_err[2].caption(f"{taux_desaccord:.1f} % des pixels")
+
+            st.subheader("Scores sur cette image")
+            m_unet, m_seg = miou_image(unet, gt), miou_image(segformer, gt)
+            mesures = st.columns(3)
+            mesures[0].metric("mIoU U-Net", f"{m_unet:.3f}")
+            mesures[1].metric(
+                "mIoU SegFormer MiT-B0",
+                f"{m_seg:.3f}",
+                delta=f"{m_seg - m_unet:+.3f}",
+            )
+            mesures[2].metric("Pixels en desaccord", f"{taux_desaccord:.1f} %")
+
+            ious_unet = {
+                CATEGORIES[c]: np.logical_and(unet == c, gt == c).sum()
+                / max(np.logical_or(unet == c, gt == c).sum(), 1)
+                for c in range(N_CLASSES)
+                if np.logical_or(unet == c, gt == c).sum()
+            }
+            ious_seg = {
+                CATEGORIES[c]: np.logical_and(segformer == c, gt == c).sum()
+                / max(np.logical_or(segformer == c, gt == c).sum(), 1)
+                for c in range(N_CLASSES)
+                if np.logical_or(segformer == c, gt == c).sum()
+            }
+            categories_communes = [c for c in CATEGORIES.values() if c in ious_unet or c in ious_seg]
+            figure = go.Figure()
+            figure.add_trace(go.Bar(
+                name="U-Net (baseline)",
+                x=categories_communes,
+                y=[ious_unet.get(c, 0) for c in categories_communes],
+                marker_color="#7f7f7f",
+                marker_pattern_shape="/",
+            ))
+            figure.add_trace(go.Bar(
+                name="SegFormer MiT-B0",
+                x=categories_communes,
+                y=[ious_seg.get(c, 0) for c in categories_communes],
+                marker_color="#4f46e5",
+            ))
+            figure.update_layout(
+                barmode="group",
+                title="IoU par categorie, sur cette image",
+                yaxis_title="IoU",
+                font=dict(size=14),
+            )
+            st.plotly_chart(figure, use_container_width=True)
+
+    # ------------------------------------------------------------------
+    # B. Image importee : SegFormer seul, sans verite terrain
+    # ------------------------------------------------------------------
+    else:
+        st.markdown(
+            "Importez une image de scene urbaine pour obtenir sa segmentation "
+            "par SegFormer. Sans annotation de reference, la comparaison avec "
+            "le U-Net n'est pas possible : utilisez les exemples du dataset "
+            "pour cela."
+        )
+
+        fichier = st.file_uploader(
+            "Choisir une image",
+            type=["png", "jpg", "jpeg"],
+            help="Image de scene urbaine (format PNG ou JPEG)",
+        )
+
+        if fichier is not None:
+            img = Image.open(fichier).convert("RGB")
+            contenu = fichier.getvalue()
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.subheader("Image originale")
+                st.image(img, use_container_width=True)
+
+            with st.spinner("Segmentation en cours..."):
+                try:
+                    masque = masque_segformer(fichier.name, contenu, fichier.type)
                     with col2:
                         st.subheader("Masque de segmentation")
-                        st.image(mask_img, use_container_width=True)
+                        st.image(masque, use_container_width=True)
 
-                    # Superposition
                     st.subheader("Superposition image + masque")
-                    img_resized = img.resize(mask_img.size)
-                    overlay = Image.blend(img_resized, mask_img, alpha=0.5)
-                    st.image(overlay, use_container_width=True)
-
-                    # Distribution JSON
-                    uploaded_file.seek(0)
-                    files = {"file": (uploaded_file.name, uploaded_file, uploaded_file.type)}
-                    json_resp = requests.post(
-                        f"{API_URL}/predict/json", files=files, timeout=90
+                    st.image(
+                        Image.blend(img.resize(masque.size), masque.convert("RGB"), alpha=0.5),
+                        use_container_width=True,
                     )
-                    if json_resp.status_code == 200:
-                        data = json_resp.json()
-                        st.subheader("Distribution des categories")
 
-                        dist = data.get("distribution", {})
-                        if dist:
-                            cats = list(dist.keys())
-                            props = [dist[c]["proportion"] for c in cats]
+                    reponse = requests.post(
+                        f"{API_URL}/predict/json",
+                        files={"file": (fichier.name, io.BytesIO(contenu), fichier.type)},
+                        timeout=90,
+                    )
+                    if reponse.status_code == 200:
+                        distribution = reponse.json().get("distribution", {})
+                        if distribution:
+                            st.subheader("Distribution des categories")
+                            noms = list(distribution.keys())
                             fig = px.bar(
-                                x=cats, y=props,
+                                x=noms,
+                                y=[distribution[c]["proportion"] for c in noms],
                                 labels={"x": "Categorie", "y": "Proportion (%)"},
-                                color=cats,
+                                color=noms,
                                 color_discrete_map=CATEGORY_COLORS_HEX,
                                 title="Categories detectees dans l'image",
                             )
-                            fig.update_traces(
-                                marker_line_color="black",
-                                marker_line_width=1.5,
-                            )
-                            fig.update_layout(
-                                showlegend=False,
-                                font=dict(size=14),
-                            )
+                            fig.update_traces(marker_line_color="black", marker_line_width=1.5)
+                            fig.update_layout(showlegend=False, font=dict(size=14))
                             st.plotly_chart(fig, use_container_width=True)
 
-                else:
-                    st.error(
-                        f"Erreur de l'API (code {response.status_code}). "
-                        f"Verifiez que l'API est lancee sur {API_URL}"
+                except requests.exceptions.Timeout:
+                    st.warning(
+                        f"L'API ({API_URL}) n'a pas repondu a temps. Hebergee sur une "
+                        "offre gratuite, elle sort peut-etre de veille : reessayez "
+                        "dans une minute."
                     )
-
-            except requests.exceptions.ConnectionError:
-                st.warning(
-                    f"Impossible de se connecter a l'API ({API_URL}). "
-                    "Lancez l'API avec : `uvicorn api.main:app --reload`"
-                )
-            except requests.exceptions.Timeout:
-                st.warning(
-                    f"L'API ({API_URL}) n'a pas repondu a temps. Si elle est hebergee "
-                    "sur un tier gratuit, elle sort peut-etre de veille : reessayez dans une minute."
-                )
-            except requests.exceptions.RequestException as exc:
-                st.error(f"Erreur lors de l'appel a l'API : {exc}")
+                except requests.exceptions.ConnectionError:
+                    st.warning(
+                        f"Impossible de se connecter a l'API ({API_URL}). "
+                        "En local : `uvicorn api.main:app --reload`"
+                    )
+                except requests.exceptions.RequestException as exc:
+                    st.error(f"Erreur lors de l'appel a l'API : {exc}")
 
     # Legende des categories
     st.subheader("Legende des categories")
