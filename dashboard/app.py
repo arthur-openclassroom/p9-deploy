@@ -1,12 +1,12 @@
 """
-Dashboard Streamlit - Segmentation semantique pour vehicules autonomes.
+Dashboard Streamlit - Segmentation sémantique pour véhicules autonomes.
 Future Vision Transport | Arthur Lambotte
 
-Fonctionnalites :
-- Exploration des donnees Cityscapes (exemples reels, distribution, transformations)
-- Prediction de segmentation via l'API
-- Visualisation des resultats
-- Accessibilite WCAG
+Fonctionnalités :
+- Exploration des données Cityscapes (exemples réels, distribution, transformations)
+- Prédiction de segmentation via l'API
+- Visualisation des résultats
+- Accessibilité WCAG
 """
 
 import json
@@ -31,7 +31,7 @@ from cityscapes_utils import (
 
 # -- Configuration --
 st.set_page_config(
-    page_title="Segmentation Semantique - Future Vision Transport",
+    page_title="Segmentation Sémantique - Future Vision Transport",
     page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -43,7 +43,7 @@ def default_api_url():
         if "API_URL" in st.secrets:
             return st.secrets["API_URL"]
     except Exception:
-        # Aucun secrets.toml en local : st.secrets leve, ce n'est pas une erreur.
+        # Aucun secrets.toml en local : st.secrets lève, ce n'est pas une erreur.
         pass
     return os.environ.get("API_URL", "http://localhost:8000")
 
@@ -51,7 +51,7 @@ def default_api_url():
 API_URL = st.sidebar.text_input(
     "URL de l'API",
     value=default_api_url(),
-    help="Par defaut : secret API_URL (Streamlit Cloud) ou variable d'environnement API_URL",
+    help="Par défaut : secret API_URL (Streamlit Cloud) ou variable d'environnement API_URL",
 )
 
 CATEGORY_COLORS_HEX = {
@@ -72,7 +72,7 @@ def text_color_for(hex_color):
 
 @st.cache_data
 def load_samples():
-    """Charge les paires (image, masque de categories) reelles bundlees avec le dashboard."""
+    """Charge les paires (image, masque de catégories) réelles fournies avec le dashboard."""
     samples = []
     for i in range(1, N_SAMPLES + 1):
         img_path = SAMPLES_DIR / f"sample_{i}_img.png"
@@ -87,7 +87,7 @@ def load_samples():
 
 @st.cache_data
 def compute_class_distribution(_samples):
-    """Distribution reelle des categories (en pixels) sur les images d'exemple bundlees."""
+    """Distribution réelle des catégories (en pixels) sur les images d'exemple fournies."""
     counts = np.zeros(N_CLASSES, dtype=np.int64)
     for _, cat_mask in _samples:
         for c in range(N_CLASSES):
@@ -97,11 +97,11 @@ def compute_class_distribution(_samples):
 
 
 def load_reference_results():
-    """Charge les resultats reels (baseline + SegFormer) s'ils sont disponibles.
+    """Charge les résultats réels (baseline + SegFormer) s'ils sont disponibles.
 
-    Prefere comparison_results.json (notebook 03) pour les DEUX modeles : le U-Net
-    y est re-evalue dans l'environnement P9 avec le meme code d'evaluation que le
-    SegFormer - meme referentiel. Repli sur les resultats historiques du Projet 8.
+    Préfère comparison_results.json (notebook 03) pour les DEUX modèles : le U-Net
+    y est re-evalue dans l'environnement P9 avec le même code d'evaluation que le
+    SegFormer - même referentiel. Repli sur les résultats historiques du Projet 8.
     """
     unet_path = ROOT / "models" / "unet_baseline_results.json"
     comparison_path = ROOT / "models" / "comparison_results.json"
@@ -128,7 +128,7 @@ def load_reference_results():
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Section",
-    ["Accueil", "Exploration des donnees", "Prediction", "A propos"],
+    ["Accueil", "Exploration des données", "Prédiction", "À propos"],
     label_visibility="collapsed",
 )
 
@@ -142,7 +142,7 @@ CLASSES_PAR_COULEUR = {tuple(c): i for i, c in CATEGORY_COLORS.items()}
 
 
 def rgb_vers_classes(mask_rgb):
-    """Masque RGB renvoye par l'API -> carte de classes (H, W) uint8."""
+    """Masque RGB renvoyé par l'API -> carte de classes (H, W) uint8."""
     arr = np.asarray(mask_rgb.convert("RGB"))
     classes = np.zeros(arr.shape[:2], dtype=np.uint8)
     for cat_id, color in CATEGORY_COLORS.items():
@@ -151,7 +151,7 @@ def rgb_vers_classes(mask_rgb):
 
 
 def miou_image(pred, gt):
-    """mIoU sur une seule image, moyenne sur les categories presentes."""
+    """mIoU sur une seule image, moyenne sur les catégories présentes."""
     ious = []
     for c in range(N_CLASSES):
         union = np.logical_or(pred == c, gt == c).sum()
@@ -169,7 +169,7 @@ COULEURS_ACCORD = {
 
 
 def isoler_categorie(masque, cat_id):
-    """Une seule categorie en couleur, le reste en gris clair."""
+    """Une seule catégorie en couleur, le reste en gris clair."""
     presence = masque == cat_id
     rgb = np.full((*masque.shape, 3), 232, dtype=np.uint8)
     rgb[presence] = CATEGORY_COLORS[cat_id]
@@ -177,7 +177,7 @@ def isoler_categorie(masque, cat_id):
 
 
 def scores_categorie(prediction, verite, cat_id):
-    """IoU, rappel et precision d'une categorie sur une image."""
+    """IoU, rappel et précision d'une catégorie sur une image."""
     p, g = prediction == cat_id, verite == cat_id
     vp = float(np.logical_and(p, g).sum())
     union = float(np.logical_or(p, g).sum())
@@ -204,7 +204,7 @@ def carte_des_accords(unet, segformer, verite):
 
 
 def masque_segformer(nom, contenu, mime):
-    """Appelle l'API et renvoie le masque RGB, ou leve l'exception requests."""
+    """Appelle l'API et renvoie le masque RGB, ou lève l'exception requests."""
     return Image.open(
         io.BytesIO(
             requests.post(
@@ -217,31 +217,31 @@ def masque_segformer(nom, contenu, mime):
 
 
 if page == "Accueil":
-    st.title("Segmentation semantique d'images pour vehicules autonomes")
-    st.markdown("**Future Vision Transport** - Equipe R&D")
+    st.title("Segmentation sémantique d'images pour véhicules autonomes")
+    st.markdown("**Future Vision Transport** - Équipe R&D")
 
     st.markdown("""
     ### Contexte
 
-    Ce dashboard presente les resultats du projet de segmentation semantique
-    d'images de scenes urbaines pour le systeme embarque de vision par ordinateur
-    des vehicules autonomes.
+    Ce dashboard présente les résultats du projet de segmentation sémantique
+    d'images de scènes urbaines pour le système embarqué de vision par ordinateur
+    des véhicules autonomes.
 
-    ### Modeles
+    ### Modèles
     """)
 
     unet_txt = f"{UNET_MIOU:.3f}" if UNET_MIOU is not None else "non disponible"
-    segformer_txt = f"{SEGFORMER_MIOU:.3f}" if SEGFORMER_MIOU is not None else "non entraine"
+    segformer_txt = f"{SEGFORMER_MIOU:.3f}" if SEGFORMER_MIOU is not None else "non entraîné"
 
     st.markdown(f"""
-    | Modele | Architecture | mIoU (validation) |
+    | Modèle | Architecture | mIoU (validation) |
     |--------|-------------|------|
     | Baseline (Projet 8) | U-Net from scratch | {unet_txt} |
     | **Nouvel algorithme** | **SegFormer MiT-B0 (Transformer)** | **{segformer_txt}** |
 
-    ### Categories de segmentation
+    ### Catégories de segmentation
 
-    Le modele segmente chaque pixel en **8 categories principales** :
+    Le modèle segmente chaque pixel en **8 catégories principales** :
     """)
 
     cols = st.columns(4)
@@ -258,12 +258,12 @@ if page == "Accueil":
 # ============================================================
 # EXPLORATION DES DONNEES
 # ============================================================
-elif page == "Exploration des donnees":
+elif page == "Exploration des données":
     st.title("Exploration du dataset Cityscapes")
 
     st.markdown("""
-    Le dataset **Cityscapes** contient 5000 images annotees de scenes urbaines,
-    capturees dans 50 villes europeennes. Chaque image est accompagnee d'un
+    Le dataset **Cityscapes** contient 5000 images annotées de scènes urbaines,
+    capturées dans 50 villes européennes. Chaque image est accompagnée d'un
     masque de segmentation pixel-level.
     """)
 
@@ -271,13 +271,13 @@ elif page == "Exploration des donnees":
     col1, col2, col3 = st.columns(3)
     col1.metric("Images (train)", "2 975")
     col2.metric("Images (val)", "500")
-    col3.metric("Resolution native", "2048 x 1024")
+    col3.metric("Résolution native", "2048 x 1024")
 
     samples = load_samples()
 
     st.subheader("Exemples d'images du dataset")
     if samples:
-        st.markdown(f"{len(samples)} images reelles du set de validation, avec leur masque de segmentation.")
+        st.markdown(f"{len(samples)} images réelles du set de validation, avec leur masque de segmentation.")
         cols = st.columns(3)
         for i, (img, cat_mask) in enumerate(samples):
             col = cols[i % 3]
@@ -285,12 +285,12 @@ elif page == "Exploration des donnees":
             col.image(img, caption=f"Image {i + 1}", use_container_width=True)
             col.image(overlay, caption=f"Superposition masque {i + 1}", use_container_width=True)
     else:
-        st.warning("Aucune image d'exemple trouvee dans dashboard/samples/.")
+        st.warning("Aucune image d'exemple trouvée dans dashboard/samples/.")
 
     st.subheader("Exemple de transformation d'image")
     st.markdown(
-        "Illustration des transformations utilisees dans le pipeline d'augmentation "
-        "(floutage gaussien, egalisation d'histogramme)."
+        "Illustration des transformations utilisées dans le pipeline d'augmentation "
+        "(floutage gaussien, égalisation d'histogramme)."
     )
     if samples:
         base_img = samples[0][0]
@@ -299,24 +299,24 @@ elif page == "Exploration des donnees":
         cols = st.columns(3)
         cols[0].image(base_img, caption="Image originale", use_container_width=True)
         cols[1].image(blurred, caption="Floutage gaussien", use_container_width=True)
-        cols[2].image(equalized, caption="Egalisation d'histogramme", use_container_width=True)
+        cols[2].image(equalized, caption="Égalisation d'histogramme", use_container_width=True)
 
-    st.subheader("Distribution des categories")
+    st.subheader("Distribution des catégories")
     if samples:
         counts, proportions = compute_class_distribution(samples)
-        st.caption(f"Comptage de pixels reel sur les {len(samples)} images d'exemple bundlees.")
+        st.caption(f"Comptage de pixels réel sur les {len(samples)} images d'exemple fournies.")
         dist_data = {
-            "Categorie": [CATEGORIES[i] for i in range(N_CLASSES)],
+            "Catégorie": [CATEGORIES[i] for i in range(N_CLASSES)],
             "Proportion (%)": proportions.round(2),
         }
 
         fig_bar = px.bar(
             dist_data,
-            x="Categorie",
+            x="Catégorie",
             y="Proportion (%)",
-            color="Categorie",
+            color="Catégorie",
             color_discrete_map=CATEGORY_COLORS_HEX,
-            title="Distribution des pixels par categorie",
+            title="Distribution des pixels par catégorie",
         )
         fig_bar.update_layout(showlegend=False, font=dict(size=14), title_font_size=16)
         fig_bar.update_traces(marker_line_color="black", marker_line_width=1.5)
@@ -325,16 +325,16 @@ elif page == "Exploration des donnees":
         fig_pie = px.pie(
             dist_data,
             values="Proportion (%)",
-            names="Categorie",
-            title="Repartition des categories",
-            color="Categorie",
+            names="Catégorie",
+            title="Répartition des catégories",
+            color="Catégorie",
             color_discrete_map=CATEGORY_COLORS_HEX,
         )
         fig_pie.update_traces(textposition="inside", textinfo="percent+label", textfont_size=12)
         fig_pie.update_layout(font=dict(size=14), title_font_size=16)
         st.plotly_chart(fig_pie, use_container_width=True)
 
-    st.subheader("Comparaison des modeles")
+    st.subheader("Comparaison des modèles")
     if UNET_IOU_PER_CLASS is not None:
         cat_names = list(CATEGORIES.values())
         fig_comp = go.Figure()
@@ -356,7 +356,7 @@ elif page == "Exploration des donnees":
                 marker_line_width=1,
             ))
         fig_comp.update_layout(
-            title="IoU par categorie : U-Net vs SegFormer",
+            title="IoU par catégorie : U-Net vs SegFormer",
             yaxis_title="IoU",
             barmode="group",
             font=dict(size=14),
@@ -364,21 +364,21 @@ elif page == "Exploration des donnees":
         )
         st.plotly_chart(fig_comp, use_container_width=True)
         if SEGFORMER_IOU_PER_CLASS is None:
-            st.info("SegFormer pas encore entraine : executez le notebook 03 pour completer la comparaison.")
+            st.info("SegFormer pas encore entraîné : exécutez le notebook 03 pour compléter la comparaison.")
     else:
-        st.warning("Resultats de la baseline non trouves (models/unet_baseline_results.json).")
+        st.warning("Résultats de la baseline non trouvés (models/unet_baseline_results.json).")
 
 # ============================================================
 # PREDICTION
 # ============================================================
-elif page == "Prediction":
-    st.title("Prediction de segmentation")
+elif page == "Prédiction":
+    st.title("Prédiction de segmentation")
 
     source = st.radio(
         "Source de l'image",
         ("Exemple du dataset", "Importer une image"),
         horizontal=True,
-        help="Les exemples du dataset ont une verite terrain : ils permettent de "
+        help="Les exemples du dataset ont une vérité terrain : ils permettent de "
              "comparer SegFormer a la baseline U-Net.",
     )
 
@@ -387,17 +387,17 @@ elif page == "Prediction":
     # ------------------------------------------------------------------
     if source == "Exemple du dataset":
         st.markdown(
-            "Chaque exemple est fourni avec son **annotation de reference**. "
-            "Les predictions du **U-Net** (baseline du Projet 8, 31 M parametres) "
-            "sont precalculees : le modele pese 119 Mo et ne peut pas etre servi "
-            "en ligne a cote de SegFormer. Celles de **SegFormer** sont calculees "
+            "Chaque exemple est fourni avec son **annotation de référence**. "
+            "Les predictions du **U-Net** (baseline du Projet 8, 31 M paramètres) "
+            "sont précalculées : le modèle pèse 119 Mo et ne peut pas être servi "
+            "en ligne à côté de SegFormer. Celles de **SegFormer** sont calculées "
             "en direct par l'API."
         )
 
         numero = st.selectbox(
-            "Choisir une scene urbaine",
+            "Choisir une scène urbaine",
             options=list(range(1, N_SAMPLES + 1)),
-            format_func=lambda n: f"Scene {n}",
+            format_func=lambda n: f"Scène {n}",
         )
 
         img_path = SAMPLES_DIR / f"sample_{numero}_img.png"
@@ -417,9 +417,9 @@ elif page == "Prediction":
                 segformer = rgb_vers_classes(masque)
             except requests.exceptions.Timeout:
                 st.warning(
-                    f"L'API ({API_URL}) n'a pas repondu a temps. Hebergee sur une "
-                    "offre gratuite, elle sort peut-etre de veille : reessayez dans "
-                    "une minute. La verite terrain et le U-Net restent affiches."
+                    f"L'API ({API_URL}) n'a pas répondu a temps. Hébergée sur une "
+                    "offre gratuite, elle sort peut-être de veille : réessayez dans "
+                    "une minute. La vérité terrain et le U-Net restent affichés."
                 )
             except requests.exceptions.RequestException as exc:
                 st.warning(f"API injoignable ({exc}). Comparaison partielle.")
@@ -427,7 +427,7 @@ elif page == "Prediction":
         colonnes = st.columns(4)
         colonnes[0].markdown("**Image**")
         colonnes[0].image(img, use_container_width=True)
-        colonnes[1].markdown("**Verite terrain**")
+        colonnes[1].markdown("**Vérité terrain**")
         colonnes[1].image(mask_to_rgb(gt), use_container_width=True)
         colonnes[2].markdown("**U-Net** (baseline)")
         colonnes[2].image(mask_to_rgb(unet), use_container_width=True)
@@ -453,9 +453,9 @@ elif page == "Prediction":
                 f":red[**Rouge**] les deux faux, {parts[3]:.1f} %"
             )
             st.caption(
-                "Les zones bleues et oranges sont les desaccords : elles se "
+                "Les zones bleues et oranges sont les désaccords : elles se "
                 "concentrent sur les contours et les petites structures, "
-                "exactement la ou les IoU par categorie divergent (object et human)."
+                "exactement là où les IoU par catégorie divergent (object et human)."
             )
 
             st.subheader("Scores sur cette image")
@@ -467,15 +467,15 @@ elif page == "Prediction":
                 f"{m_seg:.3f}",
                 delta=f"{m_seg - m_unet:+.3f}",
             )
-            mesures[2].metric("Pixels en desaccord", f"{taux_desaccord:.1f} %")
+            mesures[2].metric("Pixels en désaccord", f"{taux_desaccord:.1f} %")
 
             st.caption(
                 "Sur ces images propres, le U-Net garde l'avantage : c'est le "
                 "resultat attendu, et il est conforme au mIoU global (0,754 contre "
-                "0,674). L'interet de SegFormer se joue ailleurs : sous corruptions "
-                "(bruit, flou, brouillard, obscurite), il conserve 78,8 % de sa "
-                "performance contre 48,7 % pour le U-Net, pour 12 % des parametres "
-                "et une inference 17 fois plus rapide sur CPU."
+                "0,674). L'intérêt de SegFormer se joue ailleurs : sous corruptions "
+                "(bruit, flou, brouillard, obscurité), il conserve 78,8 % de sa "
+                "performance contre 48,7 % pour le U-Net, pour 12 % des paramètres "
+                "et une inférence 17 fois plus rapide sur CPU."
             )
 
             ious_unet = {
@@ -507,30 +507,30 @@ elif page == "Prediction":
             ))
             figure.update_layout(
                 barmode="group",
-                title="IoU par categorie, sur cette image",
+                title="IoU par catégorie, sur cette image",
                 yaxis_title="IoU",
                 font=dict(size=14),
             )
             st.plotly_chart(figure, use_container_width=True)
 
-            st.subheader("Analyse categorie par categorie")
+            st.subheader("Analyse catégorie par catégorie")
             presentes = [
                 CATEGORIES[c] for c in range(N_CLASSES)
                 if (gt == c).any() or (unet == c).any() or (segformer == c).any()
             ]
             choix = st.selectbox(
-                "Categorie a isoler",
+                "Catégorie à isoler",
                 presentes,
                 index=presentes.index("human") if "human" in presentes else 0,
-                help="Affiche ou cette categorie se trouve reellement et ou chaque "
-                     "modele la place.",
+                help="Affiche où cette catégorie se trouve reellement et où chaque "
+                     "modèle la place.",
             )
             cat_id = {nom: i for i, nom in CATEGORIES.items()}[choix]
 
             vues = st.columns(3)
             for colonne, (titre, masque) in zip(
                 vues,
-                [("Verite terrain", gt), ("U-Net", unet), ("SegFormer", segformer)],
+                [("Vérité terrain", gt), ("U-Net", unet), ("SegFormer", segformer)],
             ):
                 rgb_cat, part = isoler_categorie(masque, cat_id)
                 colonne.markdown(f"**{titre}**")
@@ -543,7 +543,7 @@ elif page == "Prediction":
             for colonne, cle, libelle in zip(
                 tableau,
                 ["iou", "rappel", "precision"],
-                ["IoU", "Rappel (part du reel retrouvee)", "Precision (part du predit correcte)"],
+                ["IoU", "Rappel (part du réel retrouvée)", "Précision (part du prédit correcte)"],
             ):
                 colonne.markdown(f"**{libelle}**")
                 colonne.markdown(
@@ -551,21 +551,21 @@ elif page == "Prediction":
                 )
 
             st.caption(
-                "Le rappel dit ce que le modele a retrouve de la categorie reelle, "
-                "la precision ce qu'il a annonce a tort. L'ecart entre les deux dit "
-                "quelle erreur domine : rappel faible, le modele manque la categorie ; "
-                "precision faible, il la voit la ou elle n'est pas. Sur human, "
-                "SegFormer a le meilleur rappel des deux mais la precision la plus "
-                "basse : il sur-segmente les pietons plutot qu'il ne les manque."
+                "Le rappel dit ce que le modèle a retrouvé de la catégorie réelle, "
+                "la précision ce qu'il a annonce à tort. L'ecart entre les deux dit "
+                "quelle erreur domine : rappel faible, le modèle manque la catégorie ; "
+                "précision faible, il la voit là où elle n'est pas. Sur human, "
+                "SegFormer a le meilleur rappel des deux mais la précision la plus "
+                "basse : il sur-segmente les piétons plutôt qu'il ne les manque."
             )
 
     # ------------------------------------------------------------------
-    # B. Image importee : SegFormer seul, sans verite terrain
+    # B. Image importee : SegFormer seul, sans vérité terrain
     # ------------------------------------------------------------------
     else:
         st.markdown(
-            "Importez une image de scene urbaine pour obtenir sa segmentation "
-            "par SegFormer. Sans annotation de reference, la comparaison avec "
+            "Importez une image de scène urbaine pour obtenir sa segmentation "
+            "par SegFormer. Sans annotation de référence, la comparaison avec "
             "le U-Net n'est pas possible : utilisez les exemples du dataset "
             "pour cela."
         )
@@ -573,7 +573,7 @@ elif page == "Prediction":
         fichier = st.file_uploader(
             "Choisir une image",
             type=["png", "jpg", "jpeg"],
-            help="Image de scene urbaine (format PNG ou JPEG)",
+            help="Image de scène urbaine (format PNG ou JPEG)",
         )
 
         if fichier is not None:
@@ -606,15 +606,15 @@ elif page == "Prediction":
                     if reponse.status_code == 200:
                         distribution = reponse.json().get("distribution", {})
                         if distribution:
-                            st.subheader("Distribution des categories")
+                            st.subheader("Distribution des catégories")
                             noms = list(distribution.keys())
                             fig = px.bar(
                                 x=noms,
                                 y=[distribution[c]["proportion"] for c in noms],
-                                labels={"x": "Categorie", "y": "Proportion (%)"},
+                                labels={"x": "Catégorie", "y": "Proportion (%)"},
                                 color=noms,
                                 color_discrete_map=CATEGORY_COLORS_HEX,
-                                title="Categories detectees dans l'image",
+                                title="Catégories détectées dans l'image",
                             )
                             fig.update_traces(marker_line_color="black", marker_line_width=1.5)
                             fig.update_layout(showlegend=False, font=dict(size=14))
@@ -622,8 +622,8 @@ elif page == "Prediction":
 
                 except requests.exceptions.Timeout:
                     st.warning(
-                        f"L'API ({API_URL}) n'a pas repondu a temps. Hebergee sur une "
-                        "offre gratuite, elle sort peut-etre de veille : reessayez "
+                        f"L'API ({API_URL}) n'a pas répondu a temps. Hébergée sur une "
+                        "offre gratuite, elle sort peut-être de veille : réessayez "
                         "dans une minute."
                     )
                 except requests.exceptions.ConnectionError:
@@ -634,8 +634,8 @@ elif page == "Prediction":
                 except requests.exceptions.RequestException as exc:
                     st.error(f"Erreur lors de l'appel a l'API : {exc}")
 
-    # Legende des categories
-    st.subheader("Legende des categories")
+    # Légende des catégories
+    st.subheader("Légende des catégories")
     cols = st.columns(4)
     for i, (cat_id, cat_name) in enumerate(CATEGORIES.items()):
         col = cols[i % 4]
@@ -650,26 +650,26 @@ elif page == "Prediction":
 # ============================================================
 # A PROPOS
 # ============================================================
-elif page == "A propos":
-    st.title("A propos")
+elif page == "À propos":
+    st.title("À propos")
     st.markdown("""
-    ### Projet 9 - Segmentation semantique pour vehicules autonomes
+    ### Projet 9 - Segmentation sémantique pour véhicules autonomes
 
     **Entreprise** : Future Vision Transport
-    **Equipe** : R&D - Bloc segmentation d'images
+    **Équipe** : R&D - Bloc segmentation d'images
     **Auteur** : Arthur Lambotte
 
     ### Baseline
 
-    **U-Net from scratch** (~31M parametres), reutilise du Projet 8 : encodeur/decodeur
-    convolutif entraine sur les 2 975 images d'entrainement de Cityscapes.
+    **U-Net from scratch** (~31M paramètres), reutilise du Projet 8 : encodeur/decodeur
+    convolutif entraîné sur les 2 975 images d'entrainement de Cityscapes.
 
     ### Nouvel algorithme
 
-    **SegFormer** (Xie et al., NeurIPS 2021), variante **MiT-B0**, est un modele de
-    segmentation semantique base sur les Vision Transformers. Il combine un encodeur
-    hierarchique (Mix Transformer - MiT), pre-entraine sur ImageNet, et un decodeur
-    MLP leger, reentraine sur les 8 categories Cityscapes.
+    **SegFormer** (Xie et al., NeurIPS 2021), variante **MiT-B0**, est un modèle de
+    segmentation sémantique base sur les Vision Transformers. Il combine un encodeur
+    hierarchique (Mix Transformer - MiT), pre-entraîné sur ImageNet, et un decodeur
+    MLP leger, reentraine sur les 8 catégories Cityscapes.
 
     ### References
 
@@ -678,14 +678,14 @@ elif page == "A propos":
     2. Ronneberger, O. et al. (2015). *U-Net: Convolutional Networks for
        Biomedical Image Segmentation.* MICCAI 2015.
     3. Cordts, M. et al. (2016). *The Cityscapes Dataset for Semantic Urban
-       Scene Understanding.* CVPR 2016.
+       Scène Understanding.* CVPR 2016.
 
-    ### Accessibilite
+    ### Accessibilité
 
-    Ce dashboard a ete concu en suivant les recommandations WCAG 2.1 :
+    Ce dashboard a ete conçu en suivant les recommandations WCAG 2.1 :
     - Contrastes de couleurs suffisants (texte noir ou blanc choisi selon la luminance du fond)
     - Textes lisibles et redimensionnables
     - Navigation au clavier possible
     - Labels descriptifs sur tous les elements interactifs
-    - Graphiques avec bordures pour distinguer les categories sans la couleur
+    - Graphiques avec bordures pour distinguer les catégories sans la couleur
     """)

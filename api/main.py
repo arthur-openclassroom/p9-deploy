@@ -63,7 +63,7 @@ def get_categories():
 async def predict_image(file: UploadFile = File(...)):
     """Segmente une image et renvoie le masque RGB en PNG."""
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Le fichier doit etre une image.")
+        raise HTTPException(status_code=400, detail="Le fichier doit être une image.")
 
     contents = await file.read()
     try:
@@ -86,7 +86,7 @@ async def predict_image(file: UploadFile = File(...)):
 async def predict_image_json(file: UploadFile = File(...)):
     """Segmente une image et renvoie les classes predites en JSON."""
     if not file.content_type or not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="Le fichier doit etre une image.")
+        raise HTTPException(status_code=400, detail="Le fichier doit être une image.")
 
     contents = await file.read()
     try:
