@@ -160,12 +160,27 @@ def miou_image(pred, gt):
     return float(np.mean(ious)) if ious else 0.0
 
 
-def carte_ecarts(a, b, couleur=(214, 39, 40)):
-    """Pixels ou a et b different, en rouge sur fond clair."""
-    ecart = a != b
-    out = np.full((*ecart.shape, 3), 240, dtype=np.uint8)
-    out[ecart] = couleur
-    return out, float(ecart.mean() * 100)
+COULEURS_ACCORD = {
+    0: (60, 160, 60),     # les deux corrects
+    1: (60, 110, 220),    # seul le U-Net correct
+    2: (245, 140, 40),    # seul le SegFormer correct
+    3: (200, 40, 40),     # les deux faux
+}
+
+
+def carte_des_accords(unet, segformer, verite):
+    """Image RGB montrant qui a raison sur chaque pixel, et la part de chaque cas."""
+    unet_ok = unet == verite
+    segformer_ok = segformer == verite
+    code = np.where(
+        unet_ok & segformer_ok, 0,
+        np.where(unet_ok, 1, np.where(segformer_ok, 2, 3)),
+    )
+    rgb = np.zeros((*code.shape, 3), dtype=np.uint8)
+    for valeur, couleur in COULEURS_ACCORD.items():
+        rgb[code == valeur] = couleur
+    parts = {v: float(np.mean(code == v)) * 100 for v in COULEURS_ACCORD}
+    return rgb, parts
 
 
 def masque_segformer(nom, contenu, mime):
@@ -402,26 +417,26 @@ elif page == "Prediction":
         else:
             colonnes[3].info("Indisponible")
 
-        st.subheader("Ou les deux modeles se trompent")
-
-        err_unet, taux_unet = carte_ecarts(unet, gt)
-        cols_err = st.columns(3)
-        cols_err[0].markdown("**Erreurs du U-Net**")
-        cols_err[0].image(err_unet, use_container_width=True)
-        cols_err[0].caption(f"{taux_unet:.1f} % des pixels mal classes")
+        st.subheader("Qui a raison sur chaque pixel")
 
         if segformer is not None:
-            err_seg, taux_seg = carte_ecarts(segformer, gt)
-            cols_err[1].markdown("**Erreurs de SegFormer**")
-            cols_err[1].image(err_seg, use_container_width=True)
-            cols_err[1].caption(f"{taux_seg:.1f} % des pixels mal classes")
-
-            desaccord, taux_desaccord = carte_ecarts(
-                unet, segformer, couleur=(148, 103, 189)
+            rgb_accords, parts = carte_des_accords(unet, segformer, gt)
+            taux_desaccord = parts[1] + parts[2]
+            st.image(rgb_accords, use_container_width=True)
+            st.markdown(
+                f":green[**Vert**] les deux corrects, {parts[0]:.1f} % "
+                f"&nbsp;&nbsp;|&nbsp;&nbsp; "
+                f":blue[**Bleu**] seul le U-Net, {parts[1]:.1f} % "
+                f"&nbsp;&nbsp;|&nbsp;&nbsp; "
+                f":orange[**Orange**] seul SegFormer, {parts[2]:.1f} % "
+                f"&nbsp;&nbsp;|&nbsp;&nbsp; "
+                f":red[**Rouge**] les deux faux, {parts[3]:.1f} %"
             )
-            cols_err[2].markdown("**Desaccord entre les deux modeles**")
-            cols_err[2].image(desaccord, use_container_width=True)
-            cols_err[2].caption(f"{taux_desaccord:.1f} % des pixels")
+            st.caption(
+                "Les zones bleues et oranges sont les desaccords : elles se "
+                "concentrent sur les contours et les petites structures, "
+                "exactement la ou les IoU par categorie divergent (object et human)."
+            )
 
             st.subheader("Scores sur cette image")
             m_unet, m_seg = miou_image(unet, gt), miou_image(segformer, gt)
