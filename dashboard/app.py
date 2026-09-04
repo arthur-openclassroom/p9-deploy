@@ -168,6 +168,26 @@ COULEURS_ACCORD = {
 }
 
 
+def isoler_categorie(masque, cat_id):
+    """Une seule categorie en couleur, le reste en gris clair."""
+    presence = masque == cat_id
+    rgb = np.full((*masque.shape, 3), 232, dtype=np.uint8)
+    rgb[presence] = CATEGORY_COLORS[cat_id]
+    return rgb, float(presence.mean() * 100)
+
+
+def scores_categorie(prediction, verite, cat_id):
+    """IoU, rappel et precision d'une categorie sur une image."""
+    p, g = prediction == cat_id, verite == cat_id
+    vp = float(np.logical_and(p, g).sum())
+    union = float(np.logical_or(p, g).sum())
+    return {
+        "iou": vp / union if union else float("nan"),
+        "rappel": vp / g.sum() if g.sum() else float("nan"),
+        "precision": vp / p.sum() if p.sum() else float("nan"),
+    }
+
+
 def carte_des_accords(unet, segformer, verite):
     """Image RGB montrant qui a raison sur chaque pixel, et la part de chaque cas."""
     unet_ok = unet == verite
@@ -492,6 +512,52 @@ elif page == "Prediction":
                 font=dict(size=14),
             )
             st.plotly_chart(figure, use_container_width=True)
+
+            st.subheader("Analyse categorie par categorie")
+            presentes = [
+                CATEGORIES[c] for c in range(N_CLASSES)
+                if (gt == c).any() or (unet == c).any() or (segformer == c).any()
+            ]
+            choix = st.selectbox(
+                "Categorie a isoler",
+                presentes,
+                index=presentes.index("human") if "human" in presentes else 0,
+                help="Affiche ou cette categorie se trouve reellement et ou chaque "
+                     "modele la place.",
+            )
+            cat_id = {nom: i for i, nom in CATEGORIES.items()}[choix]
+
+            vues = st.columns(3)
+            for colonne, (titre, masque) in zip(
+                vues,
+                [("Verite terrain", gt), ("U-Net", unet), ("SegFormer", segformer)],
+            ):
+                rgb_cat, part = isoler_categorie(masque, cat_id)
+                colonne.markdown(f"**{titre}**")
+                colonne.image(rgb_cat, use_container_width=True)
+                colonne.caption(f"{part:.1f} % de l'image")
+
+            s_unet = scores_categorie(unet, gt, cat_id)
+            s_seg = scores_categorie(segformer, gt, cat_id)
+            tableau = st.columns(3)
+            for colonne, cle, libelle in zip(
+                tableau,
+                ["iou", "rappel", "precision"],
+                ["IoU", "Rappel (part du reel retrouvee)", "Precision (part du predit correcte)"],
+            ):
+                colonne.markdown(f"**{libelle}**")
+                colonne.markdown(
+                    f"U-Net : `{s_unet[cle]:.3f}`  \nSegFormer : `{s_seg[cle]:.3f}`"
+                )
+
+            st.caption(
+                "Le rappel dit ce que le modele a retrouve de la categorie reelle, "
+                "la precision ce qu'il a annonce a tort. L'ecart entre les deux dit "
+                "quelle erreur domine : rappel faible, le modele manque la categorie ; "
+                "precision faible, il la voit la ou elle n'est pas. Sur human, "
+                "SegFormer a le meilleur rappel des deux mais la precision la plus "
+                "basse : il sur-segmente les pietons plutot qu'il ne les manque."
+            )
 
     # ------------------------------------------------------------------
     # B. Image importee : SegFormer seul, sans verite terrain
