@@ -1,0 +1,8 @@
+# Dependances du dashboard UNIQUEMENT.
+# Streamlit Cloud installe ce fichier (racine du repo) : il doit rester leger.
+# Pour les notebooks et l'entrainement : requirements-notebooks.txt
+streamlit>=1.28.0
+plotly>=5.15.0
+requests>=2.31.0
+numpy>=1.24.0
+Pillow>=10.0.0

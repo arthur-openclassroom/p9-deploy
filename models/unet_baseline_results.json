@@ -1,0 +1,62 @@
+{
+  "unet_scratch": {
+    "model": "U-Net from scratch",
+    "val_loss": 0.44961875677108765,
+    "val_iou_mean": 0.7413418889045715,
+    "iou_per_class": {
+      "void": 0.679740283223859,
+      "flat": 0.9320947119806207,
+      "construction": 0.8216058337329579,
+      "object": 0.40922974281770796,
+      "nature": 0.8757316138464518,
+      "sky": 0.9061618776589228,
+      "human": 0.5959767000812788,
+      "vehicle": 0.8439814610671684
+    }
+  },
+  "unet_mobilenet": {
+    "model": "U-Net MobileNetV2",
+    "val_loss": 0.5092099905014038,
+    "val_iou_mean": 0.7079382538795471,
+    "iou_per_class": {
+      "void": 0.6716680902503399,
+      "flat": 0.9274838430425476,
+      "construction": 0.8034890831283971,
+      "object": 0.329047814671263,
+      "nature": 0.8469919151855442,
+      "sky": 0.8921336837974748,
+      "human": 0.5372974008112672,
+      "vehicle": 0.8273313558782095
+    }
+  },
+  "unet_mobilenet_aug": {
+    "model": "U-Net MobileNetV2 + Augmentation",
+    "val_loss": 0.4766436517238617,
+    "val_iou_mean": 0.7205835580825806,
+    "iou_per_class": {
+      "void": 0.6694893094453024,
+      "flat": 0.9210753138212876,
+      "construction": 0.8188702621279107,
+      "object": 0.3496539494831482,
+      "nature": 0.8580292612288356,
+      "sky": 0.8950790788667327,
+      "human": 0.5597870981625329,
+      "vehicle": 0.8393486083082664
+    }
+  },
+  "unet_mobilenet_scratch": {
+    "model": "U-Net MobileNetV2 (from scratch)",
+    "val_loss": 0.49727103114128113,
+    "val_iou_mean": 0.6921307444572449,
+    "iou_per_class": {
+      "void": 0.6763418108735028,
+      "flat": 0.9264405655880854,
+      "construction": 0.7892079061888243,
+      "object": 0.300775871358613,
+      "nature": 0.8475110711526689,
+      "sky": 0.8769103748726417,
+      "human": 0.48020431497846783,
+      "vehicle": 0.7991038988747716
+    }
+  }
+}

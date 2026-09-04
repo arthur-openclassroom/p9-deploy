@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn==0.30.0
+python-multipart==0.0.9
+# Wheel CPU installee separement dans le Dockerfile (--index-url .../whl/cpu) :
+# le paquet torch par defaut embarque les libs CUDA, soit ~2 Go inutiles ici.
+torch==2.2.2
+# transformers < 5 : la v5 exige torchvision pour SegformerImageProcessor
+# (absent de l'image slim) et torch >= 2.6 pour charger le checkpoint .bin
+transformers==4.44.2
+numpy==1.26.4
+Pillow==10.4.0
