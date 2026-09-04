@@ -434,6 +434,15 @@ elif page == "Prediction":
             )
             mesures[2].metric("Pixels en desaccord", f"{taux_desaccord:.1f} %")
 
+            st.caption(
+                "Sur ces images propres, le U-Net garde l'avantage : c'est le "
+                "resultat attendu, et il est conforme au mIoU global (0,754 contre "
+                "0,674). L'interet de SegFormer se joue ailleurs : sous corruptions "
+                "(bruit, flou, brouillard, obscurite), il conserve 78,8 % de sa "
+                "performance contre 48,7 % pour le U-Net, pour 12 % des parametres "
+                "et une inference 17 fois plus rapide sur CPU."
+            )
+
             ious_unet = {
                 CATEGORIES[c]: np.logical_and(unet == c, gt == c).sum()
                 / max(np.logical_or(unet == c, gt == c).sum(), 1)
