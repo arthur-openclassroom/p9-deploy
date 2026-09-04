@@ -1,0 +1,18 @@
+# Blueprint Render : declare le service API en tant que code.
+# Render > New > Blueprint > choisir le depot p9-deploy.
+services:
+  - type: web
+    name: p9-segmentation-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # Render injecte lui-meme PORT au runtime et ecrase la valeur du
+      # Dockerfile (7860, valeur Hugging Face) : le CMD ecoute ${PORT}.
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: HF_HUB_OFFLINE
+        value: "1"
