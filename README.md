@@ -27,6 +27,20 @@ L'API est hébergée sur le plan gratuit de Render : elle se met en veille aprè
 | POST | `/predict` | image -> masque de segmentation en PNG |
 | POST | `/predict/json` | image -> répartition des catégories en JSON |
 
+## Prérequis : Git LFS
+
+Le checkpoint `models/segformer_b0_best.pt` (14 Mo) est versionné avec **Git LFS**.
+Sans `git-lfs` installé **avant** le clone, git récupère un pointeur de 133 octets
+et l'API échoue au chargement des poids.
+
+```bash
+brew install git-lfs   # ou apt install git-lfs
+git lfs install
+git clone https://github.com/arthur-openclassroom/p9-deploy.git
+```
+
+Si le dépôt est déjà cloné sans LFS : `git lfs install && git lfs pull`.
+
 ## Lancer en local
 
 ```bash
