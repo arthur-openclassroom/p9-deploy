@@ -389,7 +389,7 @@ elif page == "Prédiction":
         st.markdown(
             "Chaque exemple est fourni avec son **annotation de référence**. "
             "Les predictions du **U-Net** (baseline du Projet 8, 31 M paramètres) "
-            "sont précalculées : le modèle pèse 119 Mo et ne peut pas être servi "
+            "sont précalculées : le modèle pèse 124 Mo et ne peut pas être servi "
             "en ligne à côté de SegFormer. Celles de **SegFormer** sont calculées "
             "en direct par l'API."
         )
@@ -682,10 +682,14 @@ elif page == "À propos":
 
     ### Accessibilité
 
-    Ce dashboard a ete conçu en suivant les recommandations WCAG 2.1 :
-    - Contrastes de couleurs suffisants (texte noir ou blanc choisi selon la luminance du fond)
-    - Textes lisibles et redimensionnables
-    - Navigation au clavier possible
+    Ce dashboard suit les recommandations WCAG 2.1 :
+    - **Critère 1.4.1, l'information ne repose jamais sur la seule couleur** : le graphique
+      comparatif distingue les deux modèles par des hachures autant que par la teinte, et
+      la carte des accords est toujours accompagnée du pourcentage chiffré de chaque cas.
+    - **Critère 1.4.3, contrastes** : sur chaque pastille de catégorie, le texte est noir ou
+      blanc selon la luminance du fond. Deux catégories (nature, sky) restent proches du
+      seuil de 4,5:1 : leur nom est donc toujours redonné en clair à côté du visuel.
+    - Textes lisibles et redimensionnables, navigation au clavier possible.
     - Labels descriptifs sur tous les elements interactifs
     - Graphiques avec bordures pour distinguer les catégories sans la couleur
     """)
