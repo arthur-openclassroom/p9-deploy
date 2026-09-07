@@ -236,7 +236,7 @@ if page == "Accueil":
     st.markdown(f"""
     | Modèle | Architecture | mIoU (validation) |
     |--------|-------------|------|
-    | Baseline (Projet 8) | U-Net from scratch | {unet_txt} |
+    | Baseline (U-Net du Projet 8, ré-évalué ici) | U-Net from scratch | {unet_txt} |
     | **Nouvel algorithme** | **SegFormer MiT-B0 (Transformer)** | **{segformer_txt}** |
 
     ### Catégories de segmentation
@@ -661,7 +661,7 @@ elif page == "À propos":
 
     ### Baseline
 
-    **U-Net from scratch** (~31M paramètres), reutilise du Projet 8 : encodeur/decodeur
+    **U-Net from scratch** (~31M paramètres), réutilisé du Projet 8 : encodeur/decodeur
     convolutif entraîné sur les 2 975 images d'entrainement de Cityscapes.
 
     ### Nouvel algorithme
@@ -669,7 +669,7 @@ elif page == "À propos":
     **SegFormer** (Xie et al., NeurIPS 2021), variante **MiT-B0**, est un modèle de
     segmentation sémantique base sur les Vision Transformers. Il combine un encodeur
     hierarchique (Mix Transformer - MiT), pre-entraîné sur ImageNet, et un decodeur
-    MLP leger, reentraine sur les 8 catégories Cityscapes.
+    MLP léger, réentraîné sur les 8 catégories Cityscapes.
 
     ### References
 
