@@ -8,7 +8,9 @@ services:
     region: frankfurt
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
-    autoDeploy: true
+    # Sans integration GitHub (le depot est relie par URL publique), Render
+    # ignore ce reglage : les deploiements se declenchent a la main.
+    autoDeploy: false
     envVars:
       # Render injecte lui-meme PORT au runtime et ecrase la valeur du
       # Dockerfile (7860, valeur Hugging Face) : le CMD ecoute ${PORT}.

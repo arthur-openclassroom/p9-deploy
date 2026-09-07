@@ -19,7 +19,8 @@ COPY api /app/api
 COPY models/segformer_b0_best.pt /app/models/segformer_b0_best.pt
 
 ENV MODEL_PATH=/app/models/segformer_b0_best.pt
-# 7860 : port attendu par Hugging Face Spaces (app_port dans l'en-tete du README).
+# Valeur de repli uniquement : Render injecte sa propre variable PORT au
+# runtime, qui ecrase celle-ci. Le CMD ecoute ${PORT} dans tous les cas.
 ENV PORT=7860
 
 EXPOSE 7860

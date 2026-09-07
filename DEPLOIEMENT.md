@@ -55,7 +55,7 @@ Ouvrir http://localhost:8501.
 bash scripts/build_deploy_repo.sh
 ```
 
-Crée `../p9-deploy/` (~31 Mo, 30 fichiers), initialise git + Git LFS et fait le premier commit. Contenu : `api/`, `dashboard/` (avec `samples/` et `.streamlit/`), `scripts/cityscapes_utils.py`, `models/` (checkpoint B0 + les deux JSON lus par le dashboard), `Dockerfile`, `render.yaml`, `requirements.txt`, `README.md`.
+Crée `../p9-deploy/` (~32 Mo, 45 fichiers), initialise git + Git LFS et fait le premier commit. Contenu : `api/`, `dashboard/` (avec `samples/` et `.streamlit/`), `scripts/cityscapes_utils.py`, `models/` (checkpoint B0 + les deux JSON lus par le dashboard), `Dockerfile`, `render.yaml`, `requirements.txt`, `README.md`.
 
 Prérequis : `git-lfs` installé (`brew install git-lfs`).
 
