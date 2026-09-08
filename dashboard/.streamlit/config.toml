@@ -3,6 +3,10 @@ headless = true
 enableCORS = false
 enableXsrfProtection = false
 
+[client]
+# Masque la barre d'outils (icone GitHub / "Fork") sur Streamlit Cloud.
+toolbarMode = "minimal"
+
 [browser]
 gatherUsageStats = false
 

@@ -48,11 +48,7 @@ def default_api_url():
     return os.environ.get("API_URL", "http://localhost:8000")
 
 
-API_URL = st.sidebar.text_input(
-    "URL de l'API",
-    value=default_api_url(),
-    help="Par défaut : secret API_URL (Streamlit Cloud) ou variable d'environnement API_URL",
-)
+API_URL = default_api_url()
 
 CATEGORY_COLORS_HEX = {
     name: "#{:02x}{:02x}{:02x}".format(*CATEGORY_COLORS[cat_id])
@@ -128,7 +124,7 @@ def load_reference_results():
 st.sidebar.title("Navigation")
 page = st.sidebar.radio(
     "Section",
-    ["Accueil", "Exploration des données", "Prédiction", "À propos"],
+    ["Accueil", "Exploration des données", "Prédiction"],
     label_visibility="collapsed",
 )
 
@@ -646,50 +642,3 @@ elif page == "Prédiction":
             f'{cat_name}</div>',
             unsafe_allow_html=True,
         )
-
-# ============================================================
-# A PROPOS
-# ============================================================
-elif page == "À propos":
-    st.title("À propos")
-    st.markdown("""
-    ### Projet 9 - Segmentation sémantique pour véhicules autonomes
-
-    **Entreprise** : Future Vision Transport
-    **Équipe** : R&D - Bloc segmentation d'images
-    **Auteur** : Arthur Lambotte
-
-    ### Baseline
-
-    **U-Net from scratch** (~31M paramètres), réutilisé du Projet 8 : encodeur/decodeur
-    convolutif entraîné sur les 2 975 images d'entrainement de Cityscapes.
-
-    ### Nouvel algorithme
-
-    **SegFormer** (Xie et al., NeurIPS 2021), variante **MiT-B0**, est un modèle de
-    segmentation sémantique base sur les Vision Transformers. Il combine un encodeur
-    hierarchique (Mix Transformer - MiT), pre-entraîné sur ImageNet, et un decodeur
-    MLP léger, réentraîné sur les 8 catégories Cityscapes.
-
-    ### References
-
-    1. Xie, E. et al. (2021). *SegFormer: Simple and Efficient Design for
-       Semantic Segmentation with Transformers.* NeurIPS 2021.
-    2. Ronneberger, O. et al. (2015). *U-Net: Convolutional Networks for
-       Biomedical Image Segmentation.* MICCAI 2015.
-    3. Cordts, M. et al. (2016). *The Cityscapes Dataset for Semantic Urban
-       Scène Understanding.* CVPR 2016.
-
-    ### Accessibilité
-
-    Ce dashboard suit les recommandations WCAG 2.1 :
-    - **Critère 1.4.1, l'information ne repose jamais sur la seule couleur** : le graphique
-      comparatif distingue les deux modèles par des hachures autant que par la teinte, et
-      la carte des accords est toujours accompagnée du pourcentage chiffré de chaque cas.
-    - **Critère 1.4.3, contrastes** : sur chaque pastille de catégorie, le texte est noir ou
-      blanc selon la luminance du fond. Deux catégories (nature, sky) restent proches du
-      seuil de 4,5:1 : leur nom est donc toujours redonné en clair à côté du visuel.
-    - Textes lisibles et redimensionnables, navigation au clavier possible.
-    - Labels descriptifs sur tous les elements interactifs
-    - Graphiques avec bordures pour distinguer les catégories sans la couleur
-    """)
